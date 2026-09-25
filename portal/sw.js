@@ -1,9 +1,8 @@
-const CACHE = 'ccarp-fc-1w02g02';
+const CACHE = 'ccarp-portal-18nuxk7';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('ccarp-fc-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
-// Handle only this app's own files, so other pages on the same site (e.g. /portal/) are never intercepted.
 const OWN = new Set(ASSETS.map(a => new URL(a, self.location).href));
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
+self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('ccarp-portal-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
   const req = e.request, u = new URL(req.url); u.search = ''; u.hash = '';
   if (req.method !== 'GET' || !OWN.has(u.href)) return;
