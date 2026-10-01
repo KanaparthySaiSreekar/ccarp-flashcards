@@ -1,15 +1,11 @@
-const CACHE = 'ccarp-fc-1w02g02';
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('ccarp-fc-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
-// Handle only this app's own files, so other pages on the same site (e.g. /portal/) are never intercepted.
-const OWN = new Set(ASSETS.map(a => new URL(a, self.location).href));
-self.addEventListener('fetch', e => {
-  const req = e.request, u = new URL(req.url); u.search = ''; u.hash = '';
-  if (req.method !== 'GET' || !OWN.has(u.href)) return;
-  e.respondWith(caches.open(CACHE).then(async c => {
-    const hit = (await c.match(req, { ignoreSearch: true })) || (req.mode === 'navigate' ? await c.match('./') : null);
-    const net = fetch(req).then(r => { if (r.ok) c.put(req, r.clone()); return r; }).catch(() => null);
-    return hit || (await net) || new Response('Offline and not cached yet', { status: 503 });
-  }));
-});
+// This app moved to https://kanaparthysaisreekar.github.io/guides/ccarp/#moved
+// Replaces the old offline worker: deletes its cache, unregisters, and sends any open window to the new address.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil((async () => {
+  const ks = await caches.keys();
+  await Promise.all(ks.filter(k => k.startsWith("ccarp-fc-")).map(k => caches.delete(k)));
+  await self.clients.claim();
+  const wins = await self.clients.matchAll({ type: 'window' });
+  await self.registration.unregister();
+  await Promise.all(wins.map(w => w.navigate("/guides/ccarp/#moved").catch(() => null)));
+})()));

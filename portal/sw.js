@@ -1,14 +1,11 @@
-const CACHE = 'ccarp-portal-18nuxk7';
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
-const OWN = new Set(ASSETS.map(a => new URL(a, self.location).href));
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('ccarp-portal-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
-self.addEventListener('fetch', e => {
-  const req = e.request, u = new URL(req.url); u.search = ''; u.hash = '';
-  if (req.method !== 'GET' || !OWN.has(u.href)) return;
-  e.respondWith(caches.open(CACHE).then(async c => {
-    const hit = (await c.match(req, { ignoreSearch: true })) || (req.mode === 'navigate' ? await c.match('./') : null);
-    const net = fetch(req).then(r => { if (r.ok) c.put(req, r.clone()); return r; }).catch(() => null);
-    return hit || (await net) || new Response('Offline and not cached yet', { status: 503 });
-  }));
-});
+// This app moved to https://kanaparthysaisreekar.github.io/guides/ccarp/#moved
+// Replaces the old offline worker: deletes its cache, unregisters, and sends any open window to the new address.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil((async () => {
+  const ks = await caches.keys();
+  await Promise.all(ks.filter(k => k.startsWith("ccarp-portal-")).map(k => caches.delete(k)));
+  await self.clients.claim();
+  const wins = await self.clients.matchAll({ type: 'window' });
+  await self.registration.unregister();
+  await Promise.all(wins.map(w => w.navigate("/guides/ccarp/#moved").catch(() => null)));
+})()));
